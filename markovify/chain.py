@@ -67,18 +67,14 @@ class Chain:
             value INTEGER
             );
         ''')
-        cursor.execute('''
-            INSERT INTO metadata (key, value) VALUES (?, ?)
-        ''', ("state_size", self.state_size))
+        cursor.execute("INSERT INTO metadata (key, value) VALUES (?, ?)", ("state_size", self.state_size))
         for (state, next_dict) in model.items():
             key = state
             value = compile_next(next_dict)
             raw_key = word_join(key)
             raw_words = json.dumps(value[0])
             raw_cum_freq = json.dumps(value[1])
-            cursor.execute('''
-                INSERT INTO metadata (key, words, cum_freq) VALUES (?, ?, ?)
-            ''', (raw_key, raw_words, raw_cum_freq))
+            cursor.execute("INSERT INTO metadata (key, words, cum_freq) VALUES (?, ?, ?)", (raw_key, raw_words, raw_cum_freq))
         conn.commit()
         conn.close()
 
