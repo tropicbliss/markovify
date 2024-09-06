@@ -74,6 +74,7 @@ class Chain:
             value INTEGER
             );
         ''')
+        cursor.execute("BEGIN TRANSACTION")
         cursor.execute("INSERT INTO metadata (key, value) VALUES (?, ?)",
                        ("state_size", self.state_size))
         for (state, next_dict) in model.items():
