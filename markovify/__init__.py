@@ -1,12 +1,8 @@
 __all__ = [
-    "__version__",
     "Chain",
-    "Text",
-    "NewlineText",
-    "split_into_sentences",
-    "combine",
+    "Input",
+    "Output"
 ]
 
-from .__version__ import __version__
 from .chain import Chain
-from .text import Text, NewlineText
+from .text import Input, Output
