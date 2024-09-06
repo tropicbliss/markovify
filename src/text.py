@@ -1,5 +1,6 @@
 import re
 from chain import Chain
+from .util import word_join, word_split
 
 
 class Output:
@@ -24,14 +25,3 @@ class Input:
         sentences = self.sentence_split(text)
         runs = map(word_split, sentences)
         return runs
-
-
-word_split_pattern = re.compile(r"\s+")
-
-
-def word_split(sentence):
-    return re.split(word_split_pattern, sentence)
-
-
-def word_join(words):
-    return " ".join(words)

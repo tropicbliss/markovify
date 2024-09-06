@@ -4,9 +4,7 @@ import bisect
 import json
 import sqlite3
 import os
-from text import word_join
-import shelve
-import datetime
+from .util import word_join
 
 
 class DatabaseError(Exception):
@@ -44,56 +42,51 @@ class Chain:
         self.path = path
 
     def build(self, corpus):
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"{timestamp}-markovifygen.tmp"
-        with shelve.open(filename) as db:
-            model = {}
-            for run in corpus:
-                items = ([BEGIN] * self.state_size) + run + [END]
-                for i in range(len(run) + 1):
-                    state = tuple(items[i: i + self.state_size])
-                    follow = items[i + self.state_size]
-                    if state not in db:
-                        model[state] = {}
-                    nested_dict = db[state]
-                    if follow not in nested_dict:
-                        nested_dict[follow] = 0
-                    nested_dict[follow] += 1
-                    db[state] = nested_dict
+        model = {}
+        for run in corpus:
+            items = ([BEGIN] * self.state_size) + run + [END]
+            for i in range(len(run) + 1):
+                state = tuple(items[i: i + self.state_size])
+                follow = items[i + self.state_size]
+                if state not in model:
+                    model[state] = {}
+                if follow not in model[state]:
+                    model[state][follow] = 0
+                model[state][follow] += 1
 
-            try:
-                os.remove(self.path)
-            except FileNotFoundError:
-                pass
-            conn = sqlite3.connect(self.path)
-            cursor = conn.cursor()
-            cursor.execute('''
-                CREATE TABLE data (
-                    key TEXT PRIMARY KEY,
-                    words TEXT NOT NULL,
-                    cum_freq TEXT NOT NULL
-                )
-            ''')
-            cursor.execute('''
-                CREATE TABLE metadata (
+        try:
+            os.remove(self.path)
+        except FileNotFoundError:
+            pass
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute('PRAGMA synchronous = OFF')
+        cursor.execute('''
+            CREATE TABLE data (
                 key TEXT PRIMARY KEY,
-                value INTEGER
-                );
-            ''')
-            cursor.execute("INSERT INTO metadata (key, value) VALUES (?, ?)",
-                           ("state_size", self.state_size))
-            for state in db:
-                key = state
-                next_dict = db[state]
-                value = compile_next(next_dict)
-                raw_key = word_join(key)
-                raw_words = json.dumps(value[0])
-                raw_cum_freq = json.dumps(value[1])
-                cursor.execute("INSERT INTO metadata (key, words, cum_freq) VALUES (?, ?, ?)",
-                               (raw_key, raw_words, raw_cum_freq))
-            conn.commit()
-            conn.close()
-        os.remove(filename)
+                words TEXT NOT NULL,
+                cum_freq TEXT NOT NULL
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE metadata (
+            key TEXT PRIMARY KEY,
+            value INTEGER
+            );
+        ''')
+        cursor.execute("INSERT INTO metadata (key, value) VALUES (?, ?)",
+                       ("state_size", self.state_size))
+        for (state, next_dict) in model.items():
+            key = state
+            value = compile_next(next_dict)
+            raw_key = word_join(key)
+            raw_words = json.dumps(value[0])
+            raw_cum_freq = json.dumps(value[1])
+            cursor.execute("INSERT INTO data (key, words, cum_freq) VALUES (?, ?, ?)",
+                           (raw_key, raw_words, raw_cum_freq))
+        conn.commit()
+        cursor.execute('PRAGMA synchronous = ON')
+        conn.close()
 
     def move(self, state, cursor):
         choices, cumdist = index_into_state(state, cursor)
