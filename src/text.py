@@ -1,5 +1,5 @@
 import re
-from .chain import Chain
+from chain import Chain
 
 
 class Output:
