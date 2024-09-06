@@ -13,7 +13,7 @@ class Output:
 
 
 class Input:
-    def __init__(self, input_path, state_size, output_path):
+    def __init__(self, input_path, output_path, state_size):
         self.chain = Chain(state_size, output_path)
         self.chain.build(path=input_path)
 
