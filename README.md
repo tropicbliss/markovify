@@ -1,6 +1,6 @@
 # Markovify
 
-This is a fork of Markovify meant for internal use. Consumes almost no memory when training and generating sentences, in the name of slightly lower overall performance and a way smaller feature set. This fork also has 0 external dependencies.
+This is a fork of Markovify meant for internal use. Consumes almost no memory when training and generating sentences, in the name of slightly lower overall performance and a way smaller feature set. This fork also has no external dependencies.
 
 ```py
 # Train
