@@ -1,9 +1,3 @@
 # Markovify
 
-This is a fork of Markovify meant for internal use.
-
-## Features
-- Slightly better Markov Chain generation performance
-- Memory usage reduction during sentence generation
-
-To achieve these goals, the number of supported features from the original branch are drastically decreased.
+This is a fork of Markovify meant for internal use. Consumes almost no memory when training and generating sentences, in the name of slightly lower overall performance and a way smaller feature set.
