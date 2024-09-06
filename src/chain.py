@@ -4,7 +4,7 @@ import bisect
 import json
 import sqlite3
 import os
-from markovify.text import word_join
+from text import word_join
 import shelve
 import datetime
 
