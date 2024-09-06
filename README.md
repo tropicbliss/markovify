@@ -12,4 +12,4 @@ text_model = Output("data/text_model.db")
 sentence = text_model.make_sentence()
 ```
 
-For faster training, you might want to install GNU dbm.
+For faster training, you might want to install [GNU dbm](https://www.gnu.org.ua/software/gdbm/).
