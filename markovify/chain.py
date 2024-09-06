@@ -9,6 +9,9 @@ from markovify.text import word_join
 class DatabaseError(Exception):
     pass
 
+class ParamError(Exception):
+    pass
+
 BEGIN = "___BEGIN__"
 END = "___END__"
 
@@ -27,6 +30,8 @@ def compile_next(next_dict):
 
 class Chain:
     def __init__(self, state_size, path):
+        if state_size < 1:
+            raise ParamError("state_size cannot be less than 1")
         self.state_size = state_size
         self.path = path
 
