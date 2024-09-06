@@ -8,7 +8,7 @@ Input(input_path="data/output.txt",
       output_path="data/text_model.db", state_size=2)
 
 # Output
-text_model = Output("data/text_model.binyot")
+text_model = Output("data/text_model.db")
 sentence = text_model.make_sentence()
 ```
 
