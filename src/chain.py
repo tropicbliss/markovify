@@ -4,7 +4,9 @@ import bisect
 import json
 import sqlite3
 import os
-from .util import word_join
+import shelve
+import uuid
+from .util import word_join, word_split
 
 
 class DatabaseError(Exception):
@@ -41,53 +43,59 @@ class Chain:
         self.state_size = state_size
         self.path = path
 
-    def build(self, corpus):
-        model = {}
-        for run in corpus:
-            items = ([BEGIN] * self.state_size) + run + [END]
-            for i in range(len(run) + 1):
-                state = tuple(items[i: i + self.state_size])
-                follow = items[i + self.state_size]
-                if state not in model:
-                    model[state] = {}
-                if follow not in model[state]:
-                    model[state][follow] = 0
-                model[state][follow] += 1
+    def build(self, path):
+        filename = f"model-{uuid.uuid1()}.tmp"
+        with shelve.open(filename, writeback=True) as db:
+            with open(path, 'r') as input_file:
+                for line in input_file:
+                    line = line.strip()
+                    words = word_split(line)
+                    items = ([BEGIN] * self.state_size) + words + [END]
+                    for i in range(len(words) + 1):
+                        state = tuple(items[i: i + self.state_size])
+                        raw_state = word_join(state)
+                        follow = items[i + self.state_size]
+                        if raw_state not in db:
+                            db[raw_state] = {}
+                        mut_value = db[raw_state]
+                        if follow not in mut_value:
+                            mut_value[follow] = 0
+                        mut_value[follow] += 1
 
-        try:
-            os.remove(self.path)
-        except FileNotFoundError:
-            pass
-        conn = sqlite3.connect(self.path)
-        cursor = conn.cursor()
-        cursor.execute('PRAGMA synchronous = OFF')
-        cursor.execute('''
-            CREATE TABLE data (
+            try:
+                os.remove(self.path)
+            except FileNotFoundError:
+                pass
+            conn = sqlite3.connect(self.path)
+            cursor = conn.cursor()
+            cursor.execute('PRAGMA synchronous = OFF')
+            cursor.execute('''
+                CREATE TABLE data (
+                    key TEXT PRIMARY KEY,
+                    words TEXT NOT NULL,
+                    cum_freq TEXT NOT NULL
+                )
+            ''')
+            cursor.execute('''
+                CREATE TABLE metadata (
                 key TEXT PRIMARY KEY,
-                words TEXT NOT NULL,
-                cum_freq TEXT NOT NULL
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE metadata (
-            key TEXT PRIMARY KEY,
-            value INTEGER
-            );
-        ''')
-        cursor.execute("BEGIN TRANSACTION")
-        cursor.execute("INSERT INTO metadata (key, value) VALUES (?, ?)",
-                       ("state_size", self.state_size))
-        for (state, next_dict) in model.items():
-            key = state
-            value = compile_next(next_dict)
-            raw_key = word_join(key)
-            raw_words = json.dumps(value[0])
-            raw_cum_freq = json.dumps(value[1])
-            cursor.execute("INSERT INTO data (key, words, cum_freq) VALUES (?, ?, ?)",
-                           (raw_key, raw_words, raw_cum_freq))
-        conn.commit()
-        cursor.execute('PRAGMA synchronous = ON')
-        conn.close()
+                value INTEGER
+                );
+            ''')
+            cursor.execute("BEGIN TRANSACTION")
+            cursor.execute("INSERT INTO metadata (key, value) VALUES (?, ?)",
+                           ("state_size", self.state_size))
+            for state, next_dict in db.items():
+                raw_key = state
+                value = compile_next(next_dict)
+                raw_words = json.dumps(value[0])
+                raw_cum_freq = json.dumps(value[1])
+                cursor.execute("INSERT INTO data (key, words, cum_freq) VALUES (?, ?, ?)",
+                               (raw_key, raw_words, raw_cum_freq))
+            conn.commit()
+            cursor.execute('PRAGMA synchronous = ON')
+            conn.close()
+        os.remove(filename)
 
     def move(self, state, cursor):
         choices, cumdist = index_into_state(state, cursor)
@@ -97,7 +105,7 @@ class Chain:
 
     def gen(self):
         state = (BEGIN,) * self.state_size
-        conn = sqlite3.connect(self.path)
+        conn = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True)
         cursor = conn.cursor()
         while True:
             next_word = self.move(state, cursor)
