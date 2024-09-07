@@ -124,6 +124,7 @@ class Chain:
         cursor.execute(
             "SELECT value FROM metadata WHERE key = ?", ("state_size",))
         row = cursor.fetchone()
+        conn.close()
         if row:
             state_size = row[0]
         else:
