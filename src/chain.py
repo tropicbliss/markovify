@@ -119,7 +119,7 @@ class Chain:
 
     @classmethod
     def from_db(cls, path):
-        conn = sqlite3.connect(path)
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         cursor = conn.cursor()
         cursor.execute(
             "SELECT value FROM metadata WHERE key = ?", ("state_size",))
