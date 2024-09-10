@@ -105,7 +105,7 @@ class Chain:
 
     def gen(self):
         state = (BEGIN,) * self.state_size
-        conn = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True)
+        conn = get_connection(self.path)
         cursor = conn.cursor()
         while True:
             next_word = self.move(state, cursor)
@@ -115,11 +115,21 @@ class Chain:
             state = tuple(state[1:]) + (next_word,)
 
     def walk(self):
-        return list(self.gen())
+        result = []
+        state = (BEGIN,) * self.state_size
+        conn = get_connection(self.path)
+        cursor = conn.cursor()
+        while True:
+            next_word = self.move(state, cursor)
+            if next_word == END:
+                break
+            result.append(next_word)
+            state = tuple(state[1:]) + (next_word,)
+        return result
 
     @classmethod
     def from_db(cls, path):
-        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        conn = get_connection(path)
         cursor = conn.cursor()
         cursor.execute(
             "SELECT value FROM metadata WHERE key = ?", ("state_size",))
@@ -145,3 +155,7 @@ def index_into_state(state, cursor):
     words = json.loads(raw_words)
     cum_freq = json.loads(raw_cum_freq)
     return words, cum_freq
+
+
+def get_connection(path):
+    return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
