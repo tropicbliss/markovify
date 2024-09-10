@@ -103,17 +103,6 @@ class Chain:
         selection = choices[bisect.bisect(cumdist, r)]
         return selection
 
-    def gen(self):
-        state = (BEGIN,) * self.state_size
-        conn = get_connection(self.path)
-        cursor = conn.cursor()
-        while True:
-            next_word = self.move(state, cursor)
-            if next_word == END:
-                break
-            yield next_word
-            state = tuple(state[1:]) + (next_word,)
-
     def walk(self):
         result = []
         state = (BEGIN,) * self.state_size
