@@ -147,4 +147,4 @@ def index_into_state(state, cursor):
 
 
 def get_connection(path):
-    return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    return sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
