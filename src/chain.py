@@ -80,7 +80,7 @@ class Chain:
             cursor.execute('''
                 CREATE TABLE metadata (
                 key TEXT PRIMARY KEY,
-                value INTEGER
+                value INTEGER NOT NULL
                 );
             ''')
             cursor.execute("BEGIN TRANSACTION")
