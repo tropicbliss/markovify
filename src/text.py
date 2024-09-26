@@ -16,6 +16,3 @@ class Input:
     def __init__(self, input_path, output_path, state_size, append=False):
         self.chain = Chain(state_size, output_path)
         self.chain.build(path=input_path, append=append)
-
-    def sentence_split(self, text):
-        return re.split(r"\s*\n\s*", text)
