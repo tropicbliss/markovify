@@ -6,7 +6,6 @@ import sqlite3
 import os
 import shelve
 import uuid
-from .util import word_join, word_split
 
 
 class DatabaseError(Exception):
@@ -37,11 +36,12 @@ def compile_next(next_dict):
 
 
 class Chain:
-    def __init__(self, state_size, path):
+    def __init__(self, state_size, path, word_stitcher):
         if state_size < 1:
             raise ParamError("state_size cannot be less than 1")
         self.state_size = state_size
         self.path = path
+        self.word_stitcher = word_stitcher
 
     def build(self, path, append):
         filename = f"model-{uuid.uuid1()}.tmp"
@@ -49,11 +49,11 @@ class Chain:
             with open(path, 'r') as input_file:
                 for line in input_file:
                     line = line.strip()
-                    words = word_split(line)
+                    words = self.word_stitcher.word_split(line)
                     items = ([BEGIN] * self.state_size) + words + [END]
                     for i in range(len(words) + 1):
                         state = tuple(items[i: i + self.state_size])
-                        raw_state = word_join(state)
+                        raw_state = self.word_stitcher.word_join(state)
                         follow = items[i + self.state_size]
                         if raw_state not in db:
                             db[raw_state] = {}
@@ -99,7 +99,7 @@ class Chain:
         os.remove(filename)
 
     def move(self, state, cursor):
-        choices, cumdist = index_into_state(state, cursor)
+        choices, cumdist = self.index_into_state(state, cursor)
         r = random.random() * cumdist[-1]
         selection = choices[bisect.bisect(cumdist, r)]
         return selection
@@ -118,7 +118,7 @@ class Chain:
         return result
 
     @classmethod
-    def from_db(cls, path):
+    def from_db(cls, path, word_stitcher):
         conn = get_connection(path)
         cursor = conn.cursor()
         cursor.execute(
@@ -129,22 +129,21 @@ class Chain:
             state_size = row[0]
         else:
             raise DatabaseError("Invalid database file")
-        return cls(state_size, path=path)
+        return cls(state_size, path=path, word_stitcher=word_stitcher)
 
-
-def index_into_state(state, cursor):
-    raw_state = word_join(state)
-    cursor.execute(
-        "SELECT words, cum_freq FROM data WHERE key = ?", (raw_state,))
-    row = cursor.fetchone()
-    if row:
-        raw_words = row[0]
-        raw_cum_freq = row[1]
-    else:
-        raise KeyError
-    words = json.loads(raw_words)
-    cum_freq = json.loads(raw_cum_freq)
-    return words, cum_freq
+    def index_into_state(self, state, cursor):
+        raw_state = self.word_stitcher.word_join(state)
+        cursor.execute(
+            "SELECT words, cum_freq FROM data WHERE key = ?", (raw_state,))
+        row = cursor.fetchone()
+        if row:
+            raw_words = row[0]
+            raw_cum_freq = row[1]
+        else:
+            raise KeyError
+        words = json.loads(raw_words)
+        cum_freq = json.loads(raw_cum_freq)
+        return words, cum_freq
 
 
 def get_connection(path):
