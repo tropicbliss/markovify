@@ -99,7 +99,7 @@ class Chain:
         os.remove(filename)
 
     def move(self, state, cursor):
-        choices, cumdist = self.index_into_state(state, cursor)
+        choices, cumdist = index_into_state(state, cursor)
         r = random.random() * cumdist[-1]
         selection = choices[bisect.bisect(cumdist, r)]
         return selection
