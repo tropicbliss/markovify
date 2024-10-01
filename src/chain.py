@@ -43,7 +43,7 @@ class Chain:
         self.state_size = state_size
         self.path = path
 
-    def build(self, path, append):
+    def build(self, path):
         filename = f"model-{uuid.uuid1()}.tmp"
         with shelve.open(filename, writeback=True) as db:
             with open(path, 'r') as input_file:
@@ -61,12 +61,6 @@ class Chain:
                         if follow not in mut_value:
                             mut_value[follow] = 0
                         mut_value[follow] += 1
-
-            if not append:
-                try:
-                    os.remove(self.path)
-                except FileNotFoundError:
-                    pass
             conn = sqlite3.connect(self.path)
             cursor = conn.cursor()
             cursor.execute('PRAGMA synchronous = OFF')
