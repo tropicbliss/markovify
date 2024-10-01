@@ -61,6 +61,11 @@ class Chain:
                         if follow not in mut_value:
                             mut_value[follow] = 0
                         mut_value[follow] += 1
+
+            try:
+                os.remove(self.path)
+            except FileNotFoundError:
+                pass
             conn = sqlite3.connect(self.path)
             cursor = conn.cursor()
             cursor.execute('PRAGMA synchronous = OFF')
