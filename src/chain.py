@@ -137,8 +137,7 @@ def index_into_state(state, cursor):
         "SELECT words, cum_freq FROM data WHERE key = ?", (raw_state,))
     row = cursor.fetchone()
     if row:
-        raw_words = row[0]
-        raw_cum_freq = row[1]
+        raw_words, raw_cum_freq = row
     else:
         raise KeyError
     words = json.loads(raw_words)
